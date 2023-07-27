@@ -9,14 +9,19 @@ const { JWT_SECRET, SENDGRID_KEY } = require("../config/keys");
 const requireLogin = require("../middleware/requireLogin");
 const nodemailer = require("nodemailer");
 const sendgridTransport = require("nodemailer-sendgrid-transport");
-
-const transporter = nodemailer.createTransport(
-  sendgridTransport({
-    auth: {
-      api_key: SENDGRID_KEY,
-    },
-  })
+const Mailjet = require("node-mailjet");
+const mailjet = Mailjet.apiConnect(
+  "620fad79bdd0517c00f75a7d0670611c",
+  "9a693cfd847f96ad99b367db03cd6097"
 );
+
+// const transporter = nodemailer.createTransport(
+//   sendgridTransport({
+//     auth: {
+//       api_key: SENDGRID_KEY,
+//     },
+//   })
+// );
 
 router.get("/protected", requireLogin, (req, res) => {
   res.send("hello user");
@@ -42,15 +47,40 @@ router.post("/signup", (req, res) => {
         user
           .save()
           .then((user) => {
-            transporter
-              .sendMail({
-                to: user.email,
-                from: "support@instagram.com",
-                subject: "signup success",
-                html: "<h1>Welcome to instagram</h1>",
+            // transporter
+            //   .sendMail({
+            //     to: user.email,
+            //     from: "support@instagram.com",
+            //     subject: "signup success",
+            //     html: "<h1>Welcome to instagram</h1>",
+            //   })
+            //   .catch((err) => {
+            //     console.log(err);
+            //   });
+
+            const request = mailjet.post("send", { version: "v3.1" }).request({
+              Messages: [
+                {
+                  From: {
+                    Email: "turtle2u.app@gmail.com",
+                    Name: "Turtle App",
+                  },
+                  To: [
+                    {
+                      Email: user.email,
+                    },
+                  ],
+                  Subject: "Signup success",
+                  HTMLPart: "<h1>Welcome to Turtle App!</h1>",
+                },
+              ],
+            });
+            request
+              .then((result) => {
+                console.log(result.body);
               })
               .catch((err) => {
-                console.log(err);
+                console.log(err.statusCode);
               });
 
             res.json({ message: "saved successfully" });
@@ -112,16 +142,45 @@ router.post("/reset-password", (req, res) => {
       user.tokenExpiry = Date.now() + 3600000; // cur time + 1hr
 
       user.save().then((result) => {
-        transporter.sendMail({
-          to: user.email,
-          from: "support@instagram.com",
-          subject: "password-reset",
-          html: `
-            <p>You requested for password reset</p>
-            <h5>click on this <a href="http://localhost:3000/reset/${token}">link</a> to reset password</h5>
-          `,
-          // backticks for multiline
+        // transporter.sendMail({
+        //   to: user.email,
+        //   from: "support@instagram.com",
+        //   subject: "password-reset",
+        //   html: `
+        //     <p>You requested for password reset</p>
+        //     <h5>click on this <a href="http://localhost:3000/reset/${token}">link</a> to reset password</h5>
+        //   `,
+        //   // backticks for multiline
+        // });
+
+        const request = mailjet.post("send", { version: "v3.1" }).request({
+          Messages: [
+            {
+              From: {
+                Email: "turtle2u.app@gmail.com",
+                Name: "Turtle App",
+              },
+              To: [
+                {
+                  Email: user.email,
+                },
+              ],
+              Subject: "password-reset",
+              HTMLPart: `
+                    <p>You requested for password reset</p>
+                    <h5>click on this <a href="http://localhost:3000/reset/${token}">link</a> to reset password</h5>
+                  `,
+            },
+          ],
         });
+        request
+          .then((result) => {
+            console.log(result.body);
+          })
+          .catch((err) => {
+            console.log(err.statusCode);
+          });
+
         res.json({ message: "check your email for password reset" });
       });
     });
