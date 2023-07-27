@@ -5,23 +5,15 @@ const crypto = require("crypto"); // for generating token for reset password (mo
 const User = mongoose.model("User");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const { JWT_SECRET, SENDGRID_KEY } = require("../config/keys");
+const {
+  JWT_SECRET,
+  MJ_APIKEY_PUBLIC,
+  MJ_APIKEY_PRIVATE,
+} = require("../config/keys");
 const requireLogin = require("../middleware/requireLogin");
-const nodemailer = require("nodemailer");
-const sendgridTransport = require("nodemailer-sendgrid-transport");
 const Mailjet = require("node-mailjet");
-const mailjet = Mailjet.apiConnect(
-  "620fad79bdd0517c00f75a7d0670611c",
-  "9a693cfd847f96ad99b367db03cd6097"
-);
 
-// const transporter = nodemailer.createTransport(
-//   sendgridTransport({
-//     auth: {
-//       api_key: SENDGRID_KEY,
-//     },
-//   })
-// );
+const mailjet = Mailjet.apiConnect(MJ_APIKEY_PUBLIC, MJ_APIKEY_PRIVATE);
 
 router.get("/protected", requireLogin, (req, res) => {
   res.send("hello user");
@@ -47,17 +39,6 @@ router.post("/signup", (req, res) => {
         user
           .save()
           .then((user) => {
-            // transporter
-            //   .sendMail({
-            //     to: user.email,
-            //     from: "support@instagram.com",
-            //     subject: "signup success",
-            //     html: "<h1>Welcome to instagram</h1>",
-            //   })
-            //   .catch((err) => {
-            //     console.log(err);
-            //   });
-
             const request = mailjet.post("send", { version: "v3.1" }).request({
               Messages: [
                 {
@@ -142,17 +123,6 @@ router.post("/reset-password", (req, res) => {
       user.tokenExpiry = Date.now() + 3600000; // cur time + 1hr
 
       user.save().then((result) => {
-        // transporter.sendMail({
-        //   to: user.email,
-        //   from: "support@instagram.com",
-        //   subject: "password-reset",
-        //   html: `
-        //     <p>You requested for password reset</p>
-        //     <h5>click on this <a href="http://localhost:3000/reset/${token}">link</a> to reset password</h5>
-        //   `,
-        //   // backticks for multiline
-        // });
-
         const request = mailjet.post("send", { version: "v3.1" }).request({
           Messages: [
             {
